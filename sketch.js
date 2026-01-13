@@ -49,19 +49,19 @@ let lensStroke = 2.5;
 let hiddenTrashPerDrop = 30;
 
 function preload() {
-  clickSound     = loadSound("Sounds/Droptrashfinal.wav");
-  bgSound        = loadSound("Sounds/PianoEdited.wav");
-  whaleSound     = loadSound("Sounds/Whaledone.wav");
-  deepOceanSound = loadSound("Sounds/DeepOceanDone.wav");
-  wavesSound     = loadSound("Sounds/WavesEdited.wav");
-  dolphinSound   = loadSound("Sounds/Dolphindone.wav");
+  clickSound     = loadSound("Droptrashfinal.wav");
+  bgSound        = loadSound("PianoEdited.wav");
+  whaleSound     = loadSound("Whaledone.wav");
+  deepOceanSound = loadSound("DeepOceanDone.wav");
+  wavesSound     = loadSound("WavesEdited.wav");
+  dolphinSound   = loadSound("Dolphindone.wav");
 
-  sandySound     = loadSound("Sounds/SandyFinal.wav");
+  sandySound     = loadSound("SandyFinal.wav");
 
-  dropFinalSound = loadSound("Sounds/DropFinal.wav"); // chạy mỗi 5s
+  dropFinalSound = loadSound("DropFinal.wav"); // chạy mỗi 5s
 
   // ✅ NEW: SFX khi bấm nút loa
-  soundButtonSfx = loadSound("Sounds/SoundButtonFinal.wav");
+  soundButtonSfx = loadSound("SoundButtonFinal.wav");
 }
 
 // SETUP

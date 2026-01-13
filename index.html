@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.11/lib/addons/p5.sound.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Ripples - SDG14</title>
+    <link rel="stylesheet" href="themify-icons.css">
+    <style type="text/css">
+		h1 { font-family: 'CircularStdBold'; }
+	</style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+
+    <div id="canvas-section">
+           <div class="logo">
+                        <a href="https://hoangius17.github.io/Landing_Page_Generative_Art/"><img src="logo.png" alt="Logo" width="200"></a>
+                    </div>
+        <main>
+        </main>
+    </div>
+
+    <script src="sketch.js"></script>
+
+    <div class="animation-container">
+        
+        <div class="sticky-viewport">
+            
+            <div id="hero-layer" class="layer hero-layer">
+                <header class="top-bar">
+                    <div class="nav-item">School of Communication and Design</div>
+                    <div class="nav-item center">RMIT University Vietnam</div>
+                    <div class="nav-item right">November 21st, 2025</div>
+                </header>
+
+                <div class="hero-content">
+                    <i class="ti-arrow-circle-down"></i>
+                 
+                    <h1 class="main-headline">
+                        No <span class="highlight-red">water</span>, no life.<br>No <span class="highlight-red">blue</span>, no green.<br>
+                    </h1>
+                    <h2 class="author-headline">
+                        Sylvia Earle
+                    </h2>
+                    <div class="text-grid">
+                        <div class="text-col">
+                            <p>Marine biologist Sylvia Earle’s quote, “No water, no life. No blue, no green,” perfectly captures what UN Sustainable Development Goal 14 - Life Below Water is all about. Every living thing on Earth is connected to the ocean.</p>
+                        </div>
+                        <div class="text-col">
+                            <p>Yet, our oceans are struggling under the weight of pollution, overfishing, and climate change. Earle’s message is a wake-up call for everyone: <span class="highlight-red">Don’t litter the ocean.</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="expanding-circle" class="red-circle"></div>
+
+            <div id="info-layer" class="layer info-layer">
+                <div class="info-container">
+                    
+                    <div id="part-1" class="text-sequence-part">
+                        <h2 class="info-headline">
+                            <span class="text-white">Waste</span> <br> <span class="text-black">Ripples</span>
+                        </h2>
+                        <h3 class="info-subhead">
+                            SDG14 | Life Below Water
+                        </h3>
+                    </div>
+
+                    <div id="part-2" class="text-sequence-part concept-block">
+                        <h4>Concept</h4>
+                        <p>We draw inspiration from the circle and its ordered arrangement into a ripple shape, using outlines with no fill. It represents the negative impact of human activity on the ocean - specifically littering. The ocean surface creates small wave frequencies as the aftermath of these actions.</p>
+                    </div>
+
+                    <div id="part-3" class="text-sequence-part middle-text-block">
+                        <h4>Concept</h4>
+                        <p>My work takes inspiration of wastewater discharge pipes and their impact on marine life. This can gradually destroy marine ecosystems and biodiversity for a long time.</p>
+                    </div>
+
+                    <div id="part-4" class="text-sequence-part bottom-text-grid">
+                        <div class="left-desc">
+                            <h4>Concept</h4>
+                            <p>When users interact with the installation, they create ripples that symbolize the impact of waste on marine life. Through that, I want to raise awareness about the importance of protecting our oceans.</p>
+                            <p class="mt-4">Beautiful ocean is what gives us life, we need to protect it.</p>
+                        </div>
+                        <div class="right-credit">
+                            <p><strong>Bottle of water</strong><br>Ho Quoc Hoang</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="footer-section">
+        <div class="footer-container">
+            <h2 class="footer-headline">Explore <span class="highlight-red">other</span> works</h2>
+            <div class="works-list">
+                <a href="#" class="work-item">
+                    <span class="work-number">2</span>
+                    <span class="work-title">Silent Ocean - Cao Khai</span>
+                    <i class="ti-arrow-top-right"></i>
+                </a>
+                <a href="#" class="work-item">
+                    <span class="work-number">3</span>
+                    <span class="work-title">Predicted Wound - KyoYoon</span>
+                 <i class="ti-arrow-top-right"></i>
+                </a>
+                 <a href="#" class="work-item">
+                    <span class="work-number">4</span>
+                    <span class="work-title">Deadly Seigaiha - Duy Khai</span>
+                    <i class="ti-arrow-top-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+
+    <script>   
+     document.addEventListener('DOMContentLoaded', () => {
+     // ... (Keep your existing JS animation code here) ...
+        const container = document.querySelector('.animation-container');
+        const circle = document.getElementById('expanding-circle');
+        const heroLayer = document.getElementById('hero-layer');
+        const infoLayer = document.getElementById('info-layer');
+
+        const part1 = document.getElementById('part-1');
+        const part2 = document.getElementById('part-2');
+        const part3 = document.getElementById('part-3');
+        const part4 = document.getElementById('part-4');
+
+        function animateSequence(element, progress, start, end, isLast = false) {
+            const duration = end - start;
+            const midPoint = start + (duration * 0.2); 
+            const exitPoint = end - (duration * 0.2); 
+
+            let opacity = 0;
+            let scale = 0.8;
+
+            if (progress < start) {
+                opacity = 0;
+                scale = 0.8;
+            } else if (progress >= start && progress <= end) {
+                const localProgress = (progress - start) / duration;
+                scale = 0.8 + (localProgress * 0.3);
+
+                if (progress < midPoint) {
+                    opacity = (progress - start) / (midPoint - start);
+                } else if (progress > exitPoint && !isLast) {
+                    opacity = 1 - ((progress - exitPoint) / (end - exitPoint));
+                } else {
+                    opacity = 1;
+                }
+            } else {
+                opacity = isLast ? 1 : 0; 
+                scale = isLast ? 1.1 : 1.2;
+            }
+
+            element.style.opacity = opacity;
+            element.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        window.addEventListener('scroll', () => {
+            const rect = container.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            
+            const scrollEnd = rect.height - viewportHeight;
+            // Note: We need to adjust calculation because container is no longer at top of page
+            // Logic: animation starts when container hits top of viewport
+            let progress = -rect.top / scrollEnd;
+
+            if (rect.top > window.innerHeight) {
+        heroLayer.style.display = 'none';
+        circle.style.display = 'none';
+        return; // Dừng hàm, không tính toán tiếp
+    } else {
+        heroLayer.style.display = 'block';
+        circle.style.display = 'block';
+    }
+
+            if (progress < 0) progress = 0;
+            if (progress > 1) progress = 1;
+
+            const maxScale = 100; 
+            let scaleProgress = progress / 0.15; 
+            if (scaleProgress > 1) scaleProgress = 1;
+            const circleScale = 1 + (scaleProgress * scaleProgress * maxScale);
+            circle.style.transform = `scale(${circleScale})`;
+
+            let heroOpacity = 1 - (progress / 0.1);
+            if (heroOpacity < 0) heroOpacity = 0;
+            heroLayer.style.opacity = heroOpacity;
+
+            let containerOpacity = (progress - 0.1) / 0.05;
+            if (containerOpacity < 0) containerOpacity = 0;
+            if (containerOpacity > 1) containerOpacity = 1;
+            infoLayer.style.opacity = containerOpacity;
+
+            animateSequence(part1, progress, 0.15, 0.35);
+            animateSequence(part2, progress, 0.35, 0.55);
+            animateSequence(part3, progress, 0.55, 0.75);
+            animateSequence(part4, progress, 0.75, 1.0, true);
+        });
+
+        const footer = document.querySelector('.footer-section');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    footer.classList.add('visible');
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+        observer.observe(footer);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
