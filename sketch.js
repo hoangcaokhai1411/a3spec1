@@ -1,3 +1,4 @@
+Đã dùng 89% bộ nhớ … Nếu hết dung lượng lưu trữ, bạn sẽ không thể tạo, chỉnh sửa và tải tệp lên. Tiết kiệm 50% khi mua các gói hằng năm cho 1 năm với ưu đãi đặc biệt dịp Năm mới.
 let centerX, centerY;
 let coreRadius = 60;
 
@@ -18,35 +19,52 @@ let deepOceanSound;
 let wavesSound;
 let dolphinSound;
 
-// ✅ hold-scan sound
+
 let sandySound;
 
-// ✅ DropFinal every 5s
+
 let dropFinalSound;
 let lastDropFinalTime = 0;
-let dropFinalInterval = 5000; // 5s
+let dropFinalInterval = 5000; 
 
-// ✅ NEW: sound button click SFX
 let soundButtonSfx;
 
 let lastWhaleTime = 0;
 let lastWaveTime = 0;
 let lastDolphinTime = 0;
 
-// ==============================
-// ✅ SOUND TOGGLE (drawn icon)
-// ==============================
-let soundEnabled = true;
-// vùng click icon sound (góc trái)
-let soundBtn = { x: 16, y: 16, w: 44, h: 44 };
 
-// ==============================
-// ✅ "KÍNH SOI RÁC" (hidden trash)
-// ==============================
+let isMuted = false;        // sound state
+const btnSize = 40;         // button size
+const btnY = 20;            // top margin
+const btnSoundX = 20;       
+
+
+
+//  HIDDEN TRASH + MAGNET
+
 let hiddenTrash = [];
 let lensRadius = 120;
 let lensStroke = 2.5;
 let hiddenTrashPerDrop = 30;
+
+// magnet params
+let magnetStrength = 0.035;
+let magnetDamping  = 0.94;
+let magnetSnapDist = 8;
+let maxMagnetVel   = 2.0;
+let attachedLerp   = 0.12;
+
+
+//  LINE HEAT (white -> red -> white)
+
+let lineHeat = 0;
+let targetLineHeat = 0;
+let heatStep = 0.12;
+let heatLerp = 0.08;
+
+
+// PRELOAD
 
 function preload() {
   clickSound     = loadSound("Droptrashfinal.wav");
@@ -58,13 +76,13 @@ function preload() {
 
   sandySound     = loadSound("SandyFinal.wav");
 
-  dropFinalSound = loadSound("DropFinal.wav"); // chạy mỗi 5s
-
-  // ✅ NEW: SFX khi bấm nút loa
+  dropFinalSound = loadSound("DropFinal.wav");
   soundButtonSfx = loadSound("SoundButtonFinal.wav");
 }
 
+
 // SETUP
+
 function setup() {
   let cnv = createCanvas(windowWidth, windowHeight);
   cnv.parent('canvas-section');
@@ -78,6 +96,8 @@ function setup() {
   for (let i = 0; i < 3; i++) {
     ripples.push({ radius: 0, alpha: 180 });
   }
+
+  addHiddenTrash(60);
 }
 
 function windowResized() {
@@ -86,7 +106,7 @@ function windowResized() {
   centerY = height / 2;
 }
 
-// ✅ Press R to reset trash count
+// Press R to reset
 function keyPressed() {
   if (key === 'r' || key === 'R') resetTrash();
 }
@@ -98,16 +118,23 @@ function resetTrash() {
   ripples = [];
   for (let i = 0; i < 3; i++) ripples.push({ radius: 0, alpha: 180 });
 
-  // reset timer để 5s sau mới phát lại
   lastDropFinalTime = millis();
+
+  targetLineHeat = 0;
+  lineHeat = 0;
+
+  addHiddenTrash(60);
 }
 
 // DRAW
 function draw() {
   background(0, 70);
 
-  // icon sound
-  drawSoundButton();
+  // NEW UI
+  drawUI();
+
+  // smooth heat
+  lineHeat = lerp(lineHeat, targetLineHeat, heatLerp);
 
   translate(centerX, centerY);
 
@@ -123,16 +150,17 @@ function draw() {
   updateRipples();
   updateTrash();
 
-  drawTrashLens();
+  // lens + magnet
+  drawTrashLensMagnet();
 
   // hold sound
   updateSandyHoldSound();
 
-  // DropFinal play every 5s
+  // DropFinal every 5s
   updateDropFinalEvery5s();
 
   // whale
-  if (soundEnabled && whaleSound && whaleSound.isLoaded()) {
+  if (!isMuted && whaleSound && whaleSound.isLoaded()) {
     if (millis() - lastWhaleTime > 3000) {
       whaleSound.setVolume(0.05);
       whaleSound.play();
@@ -141,7 +169,7 @@ function draw() {
   }
 
   // waves
-  if (soundEnabled && wavesSound && wavesSound.isLoaded()) {
+  if (!isMuted && wavesSound && wavesSound.isLoaded()) {
     if (millis() - lastWaveTime > 2000) {
       wavesSound.setVolume(0.06);
       wavesSound.play();
@@ -150,7 +178,7 @@ function draw() {
   }
 
   // dolphin
-  if (soundEnabled && dolphinSound && dolphinSound.isLoaded()) {
+  if (!isMuted && dolphinSound && dolphinSound.isLoaded()) {
     if (millis() - lastDolphinTime > 4000) {
       dolphinSound.setVolume(0.04);
       dolphinSound.play();
@@ -159,11 +187,124 @@ function draw() {
   }
 }
 
-// ==============================
-// ✅ DropFinal every 5s
-// ==============================
+
+// UI HELPERS (NEW)
+
+function isOverSoundButton() {
+  return (
+    mouseX > btnSoundX &&
+    mouseX < btnSoundX + btnSize &&
+    mouseY > btnY &&
+    mouseY < btnY + btnSize
+  );
+}
+
+// This replaces your old sound button drawing
+function drawUI() {
+  push();
+  noStroke();
+
+  let isHoverSound = isOverSoundButton();
+
+  // Button background
+  fill(isHoverSound ? 80 : 40, 200);
+  rect(btnSoundX, btnY, btnSize, btnSize, 8);
+
+  // Icon
+  fill(255);
+
+  if (isMuted) {
+    textAlign(CENTER, CENTER);
+    textSize(10);
+    textStyle(NORMAL);
+    text("MUTE", btnSoundX + btnSize / 2, btnY + btnSize / 2);
+
+    stroke(255, 0, 0);
+    strokeWeight(2);
+    line(btnSoundX + 5, btnY + 5, btnSoundX + btnSize - 5, btnY + btnSize - 5);
+  } else {
+    // Speaker shape
+    noStroke();
+    beginShape();
+    vertex(btnSoundX + 10, btnY + 14);
+    vertex(btnSoundX + 18, btnY + 14);
+    vertex(btnSoundX + 24, btnY + 10);
+    vertex(btnSoundX + 24, btnY + 30);
+    vertex(btnSoundX + 18, btnY + 26);
+    vertex(btnSoundX + 10, btnY + 26);
+    endShape(CLOSE);
+
+    // Sound waves
+    noFill();
+    stroke(255);
+    strokeWeight(2);
+    arc(btnSoundX + 24, btnY + 20, 14, 14, -0.7, 0.7);
+    arc(btnSoundX + 24, btnY + 20, 22, 22, -0.7, 0.7);
+  }
+
+  pop();
+}
+
+// keep your original SFX behavior + master mute
+function toggleSound() {
+  if (typeof userStartAudio === "function") userStartAudio();
+
+  const wasMuted = isMuted;
+
+  // play SFX every click
+  if (soundButtonSfx && soundButtonSfx.isLoaded()) {
+    // if muted, temporarily unmute so SFX can be heard
+    if (wasMuted && typeof masterVolume === "function") masterVolume(1);
+
+    soundButtonSfx.setVolume(0.25);
+    soundButtonSfx.stop();
+    soundButtonSfx.play();
+  }
+
+  // flip state
+  isMuted = !isMuted;
+
+  if (isMuted) {
+    stopAllSoundsExceptButtonSfx();
+
+    // mute after SFX finishes
+    let ms = 180;
+    if (soundButtonSfx && soundButtonSfx.isLoaded()) {
+      ms = Math.min(Math.max(soundButtonSfx.duration() * 1000, 120), 2000);
+    }
+    setTimeout(() => {
+      if (isMuted && typeof masterVolume === "function") masterVolume(0);
+    }, ms);
+  } else {
+    if (typeof masterVolume === "function") masterVolume(1);
+  }
+}
+
+function stopAllSoundsExceptButtonSfx() {
+  if (clickSound) clickSound.stop();
+  if (bgSound) bgSound.stop();
+  if (whaleSound) whaleSound.stop();
+  if (deepOceanSound) deepOceanSound.stop();
+  if (wavesSound) wavesSound.stop();
+  if (dolphinSound) dolphinSound.stop();
+  if (sandySound) sandySound.stop();
+  if (dropFinalSound) dropFinalSound.stop();
+}
+
+
+// Line stroke color helper
+
+function setLineStroke(alpha = 255) {
+  const c = lerpColor(color(255), color(220, 30, 40), lineHeat);
+  c.setAlpha(alpha);
+  stroke(c);
+}
+
+
+// DropFinal every 5s
+
 function updateDropFinalEvery5s() {
-  if (!soundEnabled) return;
+  if (isMuted) return;
   if (!dropFinalSound || !dropFinalSound.isLoaded()) return;
 
   const now = millis();
@@ -175,23 +316,17 @@ function updateDropFinalEvery5s() {
   }
 }
 
-// ==============================
-// ✅ HOLD SOUND (SandyFinal) while holding mouse
-// ==============================
+
+// HOLD SOUND (SandyFinal) while holding mouse
+
 function isHoldingLensActive() {
   if (!mouseIsPressed) return false;
-
-  // không tính khi đang giữ trên icon sound
-  if (
-    mouseX >= soundBtn.x && mouseX <= soundBtn.x + soundBtn.w &&
-    mouseY >= soundBtn.y && mouseY <= soundBtn.y + soundBtn.h
-  ) return false;
-
+  if (isOverSoundButton()) return false;
   return true;
 }
 
 function updateSandyHoldSound() {
-  if (!soundEnabled) {
+  if (isMuted) {
     if (sandySound && sandySound.isPlaying()) sandySound.stop();
     return;
   }
@@ -208,110 +343,14 @@ function updateSandyHoldSound() {
   }
 }
 
-// ==============================
-// ✅ SOUND ICON (drawn)
-// ==============================
-function drawSoundButton() {
-  const { x, y, w, h } = soundBtn;
-  const hovering =
-    mouseX >= x && mouseX <= x + w &&
-    mouseY >= y && mouseY <= y + h;
+// HIDDEN TRASH (spawn)
 
-  push();
-  noStroke();
-  fill(0, hovering ? 120 : 90);
-  rect(x, y, w, h, 10);
-
-  const alpha = soundEnabled ? 255 : 140;
-  stroke(255, alpha);
-  strokeJoin(ROUND);
-  strokeCap(ROUND);
-
-  strokeWeight(3);
-  noFill();
-  beginShape();
-  vertex(x + 14, y + 18);
-  vertex(x + 20, y + 18);
-  vertex(x + 28, y + 12);
-  vertex(x + 28, y + 32);
-  vertex(x + 20, y + 26);
-  vertex(x + 14, y + 26);
-  endShape(CLOSE);
-
-  if (soundEnabled) {
-    strokeWeight(2.5);
-    arc(x + 28, y + 22, 16, 16, -0.7, 0.7);
-    arc(x + 28, y + 22, 24, 24, -0.7, 0.7);
-    arc(x + 28, y + 22, 32, 32, -0.7, 0.7);
-  } else {
-    strokeWeight(3);
-    line(x + 12, y + 32, x + 34, y + 12);
-  }
-
-  pop();
-}
-
-// ✅ NEW: toggle + play SFX every click
-function toggleSound() {
-  if (typeof userStartAudio === "function") userStartAudio();
-
-  const wasEnabled = soundEnabled;
-
-  // phát SFX mỗi lần bấm
-  if (soundButtonSfx && soundButtonSfx.isLoaded()) {
-    // nếu đang OFF thì unmute tạm để nghe SFX
-    if (!wasEnabled && typeof masterVolume === "function") masterVolume(1);
-
-    soundButtonSfx.setVolume(0.25);
-    soundButtonSfx.stop();
-    soundButtonSfx.play();
-  }
-
-  // toggle state
-  soundEnabled = !soundEnabled;
-
-  if (!soundEnabled) {
-    // stop hết các sound khác để "tắt toàn bộ"
-    stopAllSoundsExceptButtonSfx();
-
-    // mute sau 1 chút để SFX kịp kêu
-    let ms = 180;
-    if (soundButtonSfx && soundButtonSfx.isLoaded()) {
-      ms = Math.min(Math.max(soundButtonSfx.duration() * 1000, 120), 2000);
-    }
-    setTimeout(() => {
-      if (!soundEnabled && typeof masterVolume === "function") masterVolume(0);
-    }, ms);
-  } else {
-    // bật lại
-    if (typeof masterVolume === "function") masterVolume(1);
-  }
-}
-
-function stopAllSoundsExceptButtonSfx() {
-  if (clickSound) clickSound.stop();
-  if (bgSound) bgSound.stop();
-  if (whaleSound) whaleSound.stop();
-  if (deepOceanSound) deepOceanSound.stop();
-  if (wavesSound) wavesSound.stop();
-  if (dolphinSound) dolphinSound.stop();
-  if (sandySound) sandySound.stop();
-  if (dropFinalSound) dropFinalSound.stop();
-}
-
-function stopAllSounds() {
-  stopAllSoundsExceptButtonSfx();
-  if (soundButtonSfx) soundButtonSfx.stop();
-}
-
-// ==============================
-// KÍNH SOI RÁC
-// ==============================
 function addHiddenTrash(n) {
   for (let i = 0; i < n; i++) {
     let x = random(-width / 2 + 40, width / 2 - 40);
     let y = random(-height / 2 + 40, height / 2 - 40);
 
+    // avoid center
     if (x * x + y * y < (coreRadius * 2.0) * (coreRadius * 2.0)) {
       i--;
       continue;
@@ -320,19 +359,20 @@ function addHiddenTrash(n) {
     hiddenTrash.push({
       x, y,
       r: random(6, 16),
-      a: random(90, 200)
+      a: random(90, 200),
+      vx: 0,
+      vy: 0,
+      attached: false
     });
   }
 }
 
-function drawTrashLens() {
-  if (!mouseIsPressed) return;
 
-  // tránh hiện kính khi đang bấm icon sound
-  if (
-    mouseX >= soundBtn.x && mouseX <= soundBtn.x + soundBtn.w &&
-    mouseY >= soundBtn.y && mouseY <= soundBtn.y + soundBtn.h
-  ) return;
+// MAGNET LENS
+
+function drawTrashLensMagnet() {
+  if (!mouseIsPressed) return;
+  if (isOverSoundButton()) return;
 
   const lx = mouseX - centerX;
   const ly = mouseY - centerY;
@@ -340,13 +380,45 @@ function drawTrashLens() {
   noStroke();
   for (let p of hiddenTrash) {
     let d = dist(p.x, p.y, lx, ly);
+
     if (d <= lensRadius) {
       let mag = map(d, 0, lensRadius, 1.35, 0.9, true);
+
+      if (!p.attached) {
+        let fx = (lx - p.x) * magnetStrength;
+        let fy = (ly - p.y) * magnetStrength;
+
+        p.vx = (p.vx + fx) * magnetDamping;
+        p.vy = (p.vy + fy) * magnetDamping;
+
+        p.vx = constrain(p.vx, -maxMagnetVel, maxMagnetVel);
+        p.vy = constrain(p.vy, -maxMagnetVel, maxMagnetVel);
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (d < magnetSnapDist) {
+          p.attached = true;
+        }
+      } else {
+        p.x = lerp(p.x, lx, attachedLerp);
+        p.y = lerp(p.y, ly, attachedLerp);
+      }
+
       fill(220, 30, 40, p.a);
       ellipse(p.x, p.y, p.r * mag);
+
+      if (p.attached) {
+        noFill();
+        stroke(255, 140);
+        strokeWeight(1.5);
+        ellipse(p.x, p.y, p.r * mag + 10);
+        noStroke();
+      }
     }
   }
 
+  // lens ring
   noFill();
   stroke(255, 230);
   strokeWeight(lensStroke);
@@ -357,9 +429,32 @@ function drawTrashLens() {
   ellipse(lx, ly, lensRadius * 2);
 }
 
-// ==============================
-// RAYS / CORE / INNER / RIPPLE / TRASH
-// ==============================
+// RELEASE = collect all attached trash + fade lines back
+function mouseReleased() {
+  if (isOverSoundButton()) return;
+
+  let collected = 0;
+  for (let i = hiddenTrash.length - 1; i >= 0; i--) {
+    if (hiddenTrash[i].attached) {
+      hiddenTrash.splice(i, 1);
+      collected++;
+    }
+  }
+
+  if (collected > 0) {
+    const heatPerTrash = heatStep / hiddenTrashPerDrop;
+    targetLineHeat = max(0, targetLineHeat - collected * heatPerTrash);
+  }
+
+  if (hiddenTrash.length === 0) {
+    targetLineHeat = 0;
+    lineHeat = 0;
+  }
+}
+
+
+// RAYS / CORE / INNER
+
 function buildRays() {
   let shortLen = 150;
   let longLen = 330;
@@ -369,7 +464,7 @@ function buildRays() {
 }
 
 function drawRays() {
-  stroke(255);
+  setLineStroke(255);
   strokeWeight(1.5);
   noFill();
 
@@ -392,7 +487,7 @@ function drawRays() {
 
 function drawCoreCircle() {
   noFill();
-  stroke(255);
+  setLineStroke(255);
   strokeWeight(4);
   ellipse(0, 0, coreRadius * 2.5);
 }
@@ -414,7 +509,7 @@ function buildInnerLines() {
 }
 
 function drawInnerLines() {
-  stroke(255);
+  setLineStroke(255);
   strokeWeight(2);
   for (let L of innerLines) {
     line(L.x1, L.y1, L.x2, L.y2);
@@ -427,11 +522,14 @@ function drawRedCenter() {
   ellipse(0, 0, coreRadius * 0.3);
 }
 
+
+// RIPPLE WAVES
+
 function updateRipples() {
   if (frameCount % rippleDelay === 0) {
     ripples.push({ radius: 0, alpha: 180 });
 
-    if (soundEnabled && deepOceanSound && deepOceanSound.isLoaded()) {
+    if (!isMuted && deepOceanSound && deepOceanSound.isLoaded()) {
       deepOceanSound.setVolume(0.01);
       deepOceanSound.play();
     }
@@ -450,6 +548,8 @@ function updateRipples() {
     if (r.alpha <= 0) ripples.splice(i, 1);
   }
 }
+
+// TRASH (visible burst)
 
 class Trash {
   constructor(angle) {
@@ -491,12 +591,12 @@ function updateTrash() {
   }
 }
 
+// ==============================
+// CLICK
+// ==============================
 function mousePressed() {
-  // click icon sound -> toggle
-  if (
-    mouseX >= soundBtn.x && mouseX <= soundBtn.x + soundBtn.w &&
-    mouseY >= soundBtn.y && mouseY <= soundBtn.y + soundBtn.h
-  ) {
+  // click sound button -> toggle
+  if (isOverSoundButton()) {
     toggleSound();
     return;
   }
@@ -504,7 +604,7 @@ function mousePressed() {
   if (typeof userStartAudio === "function") userStartAudio();
 
   // bg music
-  if (soundEnabled && bgSound && bgSound.isLoaded() && !bgSound.isPlaying()) {
+  if (!isMuted && bgSound && bgSound.isLoaded() && !bgSound.isPlaying()) {
     bgSound.setVolume(0.10);
     bgSound.loop();
   }
@@ -513,7 +613,7 @@ function mousePressed() {
   let dy = mouseY - centerY;
 
   if (dx * dx + dy * dy <= coreRadius * coreRadius) {
-    if (soundEnabled && clickSound && clickSound.isLoaded()) {
+    if (!isMuted && clickSound && clickSound.isLoaded()) {
       clickSound.setVolume(0.2);
       clickSound.stop();
       clickSound.play();
@@ -522,10 +622,14 @@ function mousePressed() {
   }
 }
 
+// SPAWN TRASH
 function spawnTrash() {
   trash = [];
   for (let i = 0; i < 14; i++) {
     trash.push(new Trash((TWO_PI / 14) * i));
   }
+
   addHiddenTrash(hiddenTrashPerDrop);
+
+  targetLineHeat = constrain(targetLineHeat + heatStep, 0, 1);
 }
